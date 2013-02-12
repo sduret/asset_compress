@@ -68,17 +68,17 @@ class Sprockets extends AssetFilter {
  */
 	protected function _replace($matches) {
 		$file = $this->_currentFile;
-		
-		if ($matches[1] == '\\')  {
-			if (substr($file, -2) != 'js') {
-				$file .= '.js';
+
+		if ($matches[1] == '//')  {
+			if (substr($matches[3], -2) != 'js') {
+				$matches[3] .= '.js';
 			}
 		} else if ($matches[1] == '#')  {
-			if (substr($file, -6) != 'coffee') {
-				$file .= '.coffee';
+			if (substr($matches[3], -6) != 'coffee') {
+				$matches[3] .= '.coffee';
 			}
 		}
-		
+
 		if ($matches[2] == '"') {
 			// Same directory include
 			$file = $this->_findFile($matches[3], dirname($file) . DS);
