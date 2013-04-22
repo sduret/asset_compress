@@ -91,9 +91,10 @@ class AssetFilter implements AssetFilterInterface {
  * @return The result of the command.
  * @throws RuntimeException
  */
-	protected function _runCmd($cmd, $content, $environment = null) {
+	protected function _runCmd($cmd, $content, $environment = null, $cwd = null) {
 		$Process = new AssetProcess();
 		$Process->environment($environment);
+		$Process->cwd($cwd);
 		$Process->command($cmd)->run($content);
 
 		if ($Process->error()) {

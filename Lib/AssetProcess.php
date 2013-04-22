@@ -13,6 +13,8 @@ class AssetProcess {
 
 	protected $_output;
 
+	protected $_cwd = null;
+
 /**
  * Get/set the environment for the command.
  *
@@ -26,6 +28,20 @@ class AssetProcess {
 			return $this;
 		}
 		return $this->_env;
+	}
+
+/**
+ * Get/set the current working directory for the command.
+ *
+ * @param string $cmd Directory.
+ * @return The current working directory, or this.
+ */
+	public function cwd($cwd = null) {
+		if ($cwd !== null) {
+			$this->_cwd = $cwd;
+			return $this;
+		}
+		return $this->_cwd;
 	}
 
 /**
@@ -44,7 +60,7 @@ class AssetProcess {
 			$this->_command,
 			$descriptorSpec,
 			$pipes,
-			null,
+			$this->_cwd,
 			$this->_env
 		);
 		if (is_resource($process)) {

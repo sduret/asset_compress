@@ -12,7 +12,8 @@ class ScssFilter extends AssetFilter {
 
 	protected $_settings = array(
 		'ext' => '.scss',
-		'sass' => '/usr/bin/sass'
+		'sass' => '/usr/bin/sass', 
+		'compass' => false
 	);
 
 /**
@@ -26,8 +27,17 @@ class ScssFilter extends AssetFilter {
 		if (substr($filename, strlen($this->_settings['ext']) * -1) !== $this->_settings['ext']) {
 			return $input;
 		}
-		$bin = $this->_settings['sass'] . ' ' . $filename;
-		$return = $this->_runCmd($bin, '');
+
+		$flags = '';
+		$cwd = null;
+
+		if ($this->_settings['compass']) {
+			$flags = ' --compass';
+			$cwd = APP . 'Assets';
+		}
+
+		$bin = $this->_settings['sass']  . $flags . ' ' . $filename;
+		$return = $this->_runCmd($bin, '', null, $cwd);
 		return $return;
 	}
 
