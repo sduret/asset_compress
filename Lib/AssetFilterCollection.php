@@ -5,7 +5,6 @@ App::uses('AssetFilter', 'AssetCompress.Lib');
  * A collection for creating and interacting with filter sets.
  *
  *
- * @package asset_compress
  */
 class AssetFilterCollection {
 
@@ -32,12 +31,12 @@ class AssetFilterCollection {
 	protected function _buildFilters($filters, $settings) {
 		foreach ($filters as $className) {
 			list($plugin, $className) = pluginSplit($className, true);
-			App::import('Lib', $plugin . 'asset_compress/filter/' . $className);
+			App::uses($className, 'AssetCompress.Lib/Filter');
 			if (!class_exists($className)) {
-				App::import('Lib', 'AssetCompress.filter/' . $className);
-				if (!class_exists($className)) {
-					throw new Exception(sprintf('Cannot not load filter "%s".', $className));
-				}
+				App::uses($className, $plugin . 'AssetCompress/Filter');
+			}
+			if (!class_exists($className)) {
+				throw new Exception(sprintf('Cannot not load filter "%s".', $plugin . $className));
 			}
 			$config = array_merge($this->_config, isset($settings[$className]) ? $settings[$className] : array());
 			$filter = new $className();

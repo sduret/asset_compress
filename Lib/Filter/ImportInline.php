@@ -6,7 +6,6 @@ App::uses('AssetScanner', 'AssetCompress.Lib');
  * A preprocessor that inlines files referenced by
  * @import() statements in css files.
  *
- * @package asset_compress
  */
 class ImportInline extends AssetFilter {
 
@@ -18,7 +17,7 @@ class ImportInline extends AssetFilter {
 
 	public function settings($settings) {
 		parent::settings($settings);
-		$this->_Scanner = new AssetScanner($settings['paths']);
+		$this->_Scanner = new AssetScanner($settings['paths'], Hash::get($settings, 'theme'));
 	}
 
 /**
@@ -46,7 +45,7 @@ class ImportInline extends AssetFilter {
 		$required = empty($matches[2]) ? $matches[4] : $matches[2];
 		$filename = $this->_Scanner->find($required);
 		if (!$filename) {
-			throw RuntimeException(sprintf('Could not find dependency "%s"', $required));
+			throw new RuntimeException(sprintf('Could not find dependency "%s"', $required));
 		}
 		if (empty($this->_loaded[$filename])) {
 			return $this->input($filename, file_get_contents($filename));

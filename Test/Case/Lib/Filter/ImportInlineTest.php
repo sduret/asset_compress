@@ -5,12 +5,18 @@ class ImportInlineTest extends CakeTestCase {
 
 	public function setUp() {
 		$this->_pluginPath = App::pluginPath('AssetCompress');
+		$this->_testFiles = $this->_pluginPath . 'Test/test_files/';
+
+		App::build(array(
+			'View' => array($this->_testFiles . 'View' . DS)
+		));
 
 		$this->filter = new ImportInline();
 		$settings = array(
 			'paths' => array(
 				$this->_pluginPath . 'Test/test_files/css/'
-			)
+			),
+			'theme' => 'red',
 		);
 		$this->filter->settings($settings);
 	}
@@ -26,11 +32,12 @@ class ImportInlineTest extends CakeTestCase {
 #nav {
 	width:100%;
 }
+
 TEXT;
 		$this->assertEquals($expected, $result);
 	}
 
-	public function testReplacementNested() {
+	public function testReplacementNestedAndTheme() {
 		$content = file_get_contents($this->_pluginPath . 'Test' . DS . 'test_files' . DS . 'css' . DS . 'has_import.css');
 		$result = $this->filter->input('has_import.css', $content);
 		$expected = <<<TEXT
@@ -41,11 +48,18 @@ TEXT;
 #nav {
 	width:100%;
 }
+
+body {
+	color: red !important;
+}
+
 body {
 	color:#f00;
 	background:#000;
 }
+
 TEXT;
 		$this->assertEquals($expected, $result);
 	}
+
 }

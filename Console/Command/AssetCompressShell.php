@@ -1,5 +1,5 @@
 <?php
-App::uses('Shell', 'Console');
+App::uses('AppShell', 'Console/Command');
 App::uses('AssetConfig', 'AssetCompress.Lib');
 App::uses('AssetCompiler', 'AssetCompress.Lib');
 App::uses('AssetCache', 'AssetCompress.Lib');
@@ -11,9 +11,8 @@ App::uses('Folder', 'Utility');
  *
  * Assists in clearing and creating the build files this plugin makes.
  *
- * @package AssetCompress
  */
-class AssetCompressShell extends Shell {
+class AssetCompressShell extends AppShell {
 
 	public $tasks = array('AssetCompress.AssetBuild');
 

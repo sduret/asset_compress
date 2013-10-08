@@ -6,9 +6,15 @@ App::uses('AssetFilterCollection', 'AssetCompress.Lib');
  * Compiles a set of assets together, and applies filters.
  * Forms the center of AssetCompress
  *
- * @package asset_compress
  */
 class AssetCompiler {
+
+/**
+ * Instance of AssetFilterCollection
+ *
+ * @var AssetFilterCollection
+ */
+	protected $_FilterCollection;
 
 /**
  * Instance of AssetConfig
@@ -46,11 +52,11 @@ class AssetCompiler {
 		$output = '';
 		foreach ($this->_getFilesList($build) as $file) {
 			$content = $this->_readFile($file);
-			$content = $this->filters->input($file, $content);
-			$output .= $content;
+			$content = $this->_FilterCollection->input($file, $content);
+			$output .= $content . "\n";
 		}
-		if (Configure::read('debug') < 2 || php_sapi_name() == 'cli') {
-			$output = $this->filters->output($build, $output);
+		if (Configure::read('debug') < 2 || php_sapi_name() === 'cli') {
+			$output = $this->_FilterCollection->output($build, $output);
 		}
 		return trim($output);
 	}
@@ -59,7 +65,7 @@ class AssetCompiler {
  * Gets the latest modified time for the files set on the build
  *
  * @param string $target The name of the build target to generate.
- * @return int last modified time in UNIX seconds
+ * @return integer last modified time in UNIX seconds
  */
 	public function getLastModified($build) {
 		$time = 0;
@@ -86,7 +92,7 @@ class AssetCompiler {
 		}
 		$ext = $this->_Config->getExt($build);
 		$this->_Scanner = $this->_makeScanner($this->_Config->paths($ext, $build), $this->_Config->theme());
-		$this->filters = $this->_makeFilters($ext, $build);
+		$this->_FilterCollection = $this->_makeFilters($ext, $build);
 
 		$output = '';
 		$files = $this->_Config->files($build);
@@ -115,11 +121,13 @@ class AssetCompiler {
  * Factory method for AssetFilterCollection
  *
  * @param string $ext The extension An array of filters to put in the collection
+ * @return FilterCollection
  */
 	protected function _makeFilters($ext, $target) {
 		$config = array(
 			'paths' => $this->_Config->paths($ext, $target),
-			'target' => $target
+			'target' => $target,
+			'theme' => $this->_Config->theme()
 		);
 		$filters = $this->_Config->filters($ext, $target);
 		$filterSettings = $this->_Config->filterConfig($filters);
@@ -149,9 +157,7 @@ class AssetCompiler {
 	protected function _readFile($file) {
 		$content = '';
 		if ($this->_Scanner->isRemote($file)) {
-			// @codingStandardsIgnoreStart
-			$handle = @fopen($file, 'rb');
-			// @codingStandardsIgnoreEnd
+			$handle = fopen($file, 'rb');
 			if ($handle) {
 				$content = stream_get_contents($handle);
 				fclose($handle);
