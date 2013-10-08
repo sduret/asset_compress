@@ -23,7 +23,7 @@ class AssetCache {
  */
 	public function write($filename, $content) {
 		$ext = $this->_Config->getExt($filename);
-		$path = $this->_Config->cachePath($ext);
+		$path = $this->_Config->buildPath($ext);
 
 		if (!is_writable($path)) {
 			throw new RuntimeException('Cannot write cache file. Unable to write to ' . $path);
@@ -47,7 +47,7 @@ class AssetCache {
 		$theme = $this->_Config->theme();
 		$target = $this->buildFileName($target);
 
-		$buildFile = $this->_Config->cachePath($ext) . $target;
+		$buildFile = $this->_Config->buildPath($ext) . $target;
 
 		if (!file_exists($buildFile)) {
 			return false;

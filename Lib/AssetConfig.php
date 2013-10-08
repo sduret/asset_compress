@@ -260,6 +260,10 @@ class AssetConfig {
 			$path = $this->_replacePathConstants($target['cachePath']);
 			$target['cachePath'] = rtrim($path, '/') . '/';
 		}
+		if (!empty($target['buildPath'])) {
+			$path = $this->_replacePathConstants($target['buildPath']);
+			$target['buildPath'] = rtrim($path, '/') . '/';
+		}
 		return $target;
 	}
 
@@ -452,6 +456,23 @@ class AssetConfig {
 		}
 		$path = $this->_replacePathConstants($path);
 		$this->_data[$ext]['cachePath'] = rtrim($path, '/') . '/';
+	}
+
+/**
+ * Accessor for getting the buildPath for a given extension.
+ *
+ * @param string $ext Extension to get paths for.
+ * @param string $path The path to build files using $ext to.
+ */
+	public function buildPath($ext, $path = null) {
+		if ($path === null) {
+			if (isset($this->_data[$ext]['buildPath'])) {
+				return $this->_data[$ext]['buildPath'];
+			}
+			return '';
+		}
+		$path = $this->_replacePathConstants($path);
+		$this->_data[$ext]['buildPath'] = rtrim($path, '/') . '/';
 	}
 
 /**

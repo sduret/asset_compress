@@ -113,7 +113,7 @@ class AssetCompressShell extends AppShell {
 			$this->err('No ' . $ext . ' build files defined, skipping');
 			return;
 		}
-		$path = $this->_Config->cachePath($ext);
+		$path = $this->_Config->buildPath($ext);
 		if (!file_exists($path)) {
 			$this->err('Build directory ' . $path . ' for ' . $ext . ' does not exist.');
 			return;
