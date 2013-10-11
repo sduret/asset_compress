@@ -109,9 +109,6 @@ class Sprockets extends AssetFilter {
  * @throws Exception when files can't be located.
  */
 	protected function _findFile($file, $path = null) {
-		if (substr($file, -2) !== 'js') {
-			$file .= '.js';
-		}
 		if ($path && file_exists($path . $file)) {
 			return $path . $file;
 		}
