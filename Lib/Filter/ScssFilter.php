@@ -35,9 +35,11 @@ class ScssFilter extends AssetFilter {
 			$flags = ' --compass';
 			$cwd = APP . 'Assets';
 		}
-
+		$env = array(
+			'LANG' => 'en_CA.UTF-8'
+		);
 		$bin = $this->_settings['sass']  . $flags . ' ' . $filename;
-		$return = $this->_runCmd($bin, '', null, $cwd);
+		$return = $this->_runCmd($bin, '', $env, $cwd);
 		return $return;
 	}
 
