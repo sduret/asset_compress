@@ -2,7 +2,6 @@
 /**
  * Parses the ini files AssetCompress uses into arrays that
  * other objects can use.
- *
  */
 class AssetConfig {
 
@@ -149,8 +148,12 @@ class AssetConfig {
 		if (empty($filename) || !is_string($filename) || !file_exists($filename)) {
 			throw new RuntimeException(sprintf('Configuration file "%s" was not found.', $filename));
 		}
-
-		return parse_ini_file($filename, true);
+		
+		if (function_exists('parse_ini_file')) {
+			return parse_ini_file($filename, true);
+		} else {
+			return parse_ini_string(file_get_contents($filename), true);
+		}
 	}
 
 /**
@@ -167,12 +170,13 @@ class AssetConfig {
 		}
 
 		$AssetConfig = new AssetConfig(self::$_defaults, $constants, $modifiedTime);
-		self::_parseConfigFile($baseFile, $AssetConfig);
+		self::_parseConfigFileLocal($baseFile, $AssetConfig);
 
 		$plugins = CakePlugin::loaded();
 		foreach ($plugins as $plugin) {
-			if (file_exists(CakePlugin::path($plugin) . 'Config' . DS . 'asset_compress.ini')) {
-				self::_parseConfigFile(CakePlugin::path($plugin) . 'Config' . DS . 'asset_compress.ini', $AssetConfig, $plugin . '.');
+			$pluginConfig = CakePlugin::path($plugin) . 'Config' . DS . 'asset_compress.ini';
+			if (file_exists($pluginConfig)) {
+				self::_parseConfigFileLocal($pluginConfig, $AssetConfig, $plugin . '.');
 			}
 		}
 
@@ -181,6 +185,24 @@ class AssetConfig {
 		}
 
 		return $AssetConfig;
+	}
+
+/**
+ * Parse a file and optionally the .local version of the file.
+ *
+ * @param string $file The file to parse.
+ * @param AssetConfig $AssetConfig The config object to add data to.
+ * @param null|string $prefix The prefix to append to build targets.
+ * @return void
+ */
+	protected static function _parseConfigFileLocal($file, $AssetConfig, $prefix = null) {
+		self::_parseConfigFile($file, $AssetConfig, $prefix);
+
+		// Load related .local.ini file if exists
+		$localConfig = preg_replace('/(.*)\.ini$/', '$1.local.ini', $file);
+		if (file_exists($localConfig)) {
+			self::_parseConfigFile($localConfig, $AssetConfig, $prefix);
+		}
 	}
 
 /**

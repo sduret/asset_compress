@@ -24,13 +24,16 @@ class AssetProcess {
  */
 	public function environment($env = null) {
 		if ($env !== null) {
-			$this->_env = $env;
+			// Windows nodejs needs these environment variables.
+			$winenv = $this->_getenv(array('SystemDrive', 'SystemRoot'));
+			$this->_env = array_merge($winenv, $env);
 			return $this;
 		}
 		return $this->_env;
 	}
 
 /**
+
  * Get/set the current working directory for the command.
  *
  * @param string $cmd Directory.
@@ -42,6 +45,23 @@ class AssetProcess {
 			return $this;
 		}
 		return $this->_cwd;
+	}
+
+/**
+ * Gets selected variables from the global environment.
+ *
+ * @param array $vars An array of variable names to load
+ * @return An array with values of selected environment variables if they
+ *    are set.
+ */
+	protected function _getenv(array $vars) {
+		$result = array();
+		foreach ($vars as $var) {
+			if (getenv($var)) {
+				$result[$var] = getenv($var);
+			}
+		}
+		return $result;
 	}
 
 /**
@@ -83,7 +103,7 @@ class AssetProcess {
  * @return string Content from the command.
  */
 	public function error() {
-		return $this->_error;
+		return trim($this->_error);
 	}
 
 /**
@@ -102,6 +122,11 @@ class AssetProcess {
  * @return $this
  */
 	public function command($command) {
+		// Wrap Windows exe in quotes if needed. "C:\Program Files\nodejs\node.exe"
+		// Checks for path name with one or more spaces followed by `.exe`
+		// Wraps only the exe,  not any arguments following the .exe.
+		// Unix commands wont have .exe so they remain unchanged.
+		$command = preg_replace('/^\s*([^"\s]+\s.+\.exe)(\s|$)/', '"$1"$2', $command);
 		$this->_command = $command;
 		return $this;
 	}

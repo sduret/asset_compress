@@ -3,6 +3,8 @@ App::uses('AppHelper', 'View/Helper');
 App::uses('AssetScanner', 'AssetCompress.Lib');
 App::uses('AssetCache', 'AssetCompress.Lib');
 App::uses('AssetConfig', 'AssetCompress.Lib');
+App::uses('Hash', 'Utility');
+App::uses('Router', 'Routing');
 
 /**
  * AssetCompress Helper.
@@ -13,18 +15,31 @@ App::uses('AssetConfig', 'AssetCompress.Lib');
  */
 class AssetCompressHelper extends AppHelper {
 
+/**
+ * Helpers used.
+ *
+ * @var array
+ */
 	public $helpers = array('Html');
 
+/**
+ * Configuration object
+ *
+ * @var AssetConfig
+ */
 	protected $_Config;
 
+/**
+ * Cacher object
+ *
+ * @var AssetCache
+ */
 	protected $_AssetCache;
 
 /**
  * Options for the helper
  *
  * - `autoIncludePath` - Path inside of webroot/js that contains autoloaded view js.
- * - `jsCompressUrl` - Url to use for getting compressed js files.
- * - `cssCompressUrl` - Url to use for getting compressed css files.
  *
  * @var array
  */
@@ -93,7 +108,7 @@ class AssetCompressHelper extends AppHelper {
  * @return void
  */
 	public function options($options) {
-		$this->options = Set::merge($this->options, $options);
+		$this->options = Hash::merge($this->options, $options);
 	}
 
 /**
@@ -128,7 +143,10 @@ class AssetCompressHelper extends AppHelper {
 		foreach ($files as $file) {
 			$includeFile = JS . $this->options['autoIncludePath'] . DS . $file;
 			if (file_exists($includeFile)) {
-				$this->Html->script(str_replace(DS, '/', $this->options['autoIncludePath'] . '/' . $file), array('inline' => false));
+				$this->Html->script(
+					str_replace(DS, '/', $this->options['autoIncludePath'] . '/' . $file),
+					array('inline' => false)
+				);
 			}
 		}
 	}
@@ -267,14 +285,14 @@ class AssetCompressHelper extends AppHelper {
  */
 	public function css($file, $options = array()) {
 		$file = $this->_addExt($file, '.css');
-		$buildFiles = $this->_Config->files($file);
+		$config = $this->config();
+		$buildFiles = $config->files($file);
 		if (!$buildFiles) {
 			throw new RuntimeException('Cannot create a stylesheet tag for a build that does not exist.');
 		}
 		$output = '';
 		if (!empty($options['raw'])) {
 			unset($options['raw']);
-			$config = $this->config();
 			$scanner = new AssetScanner($config->paths('css', $file), $this->theme);
 			foreach ($buildFiles as $part) {
 				$part = $scanner->resolve($part, false);
@@ -284,7 +302,8 @@ class AssetCompressHelper extends AppHelper {
 			return $output;
 		}
 
-		$url = $this->_getAssetUrl('css', $file);
+		$url = $this->url($file, $options);
+		unset($options['full']);
 		return $this->Html->css($url, null, $options);
 	}
 
@@ -306,47 +325,68 @@ class AssetCompressHelper extends AppHelper {
  */
 	public function script($file, $options = array()) {
 		$file = $this->_addExt($file, '.js');
-		$buildFiles = $this->_Config->files($file);
+		$config = $this->config();
+		$buildFiles = $config->files($file);
 		if (!$buildFiles) {
 			throw new RuntimeException('Cannot create a script tag for a build that does not exist.');
 		}
 		if (!empty($options['raw'])) {
 			$output = '';
 			unset($options['raw']);
-			$config = $this->config();
 			$scanner = new AssetScanner($config->paths('js', $file), $this->theme);
 			foreach ($buildFiles as $part) {
 				$part = $scanner->resolve($part, false);
+				$part = str_replace(DS, '/', $part);
 				$output .= $this->Html->script($part, $options);
 			}
 			return $output;
 		}
 
-		$url = $this->_getAssetUrl('js', $file);
+		$url = $this->url($file, $options);
+		unset($options['full']);
+
 		return $this->Html->script($url, $options);
 	}
 
 /**
- * Get the url for an asset based on the type and file.
+ * Get the URL for a given asset name.
  *
- * @param string $type The type of file. (css/js)
- * @param string $file The build filename.
+ * Takes an build filename, and returns the URL
+ * to that build file.
+ *
+ * @param string $file The build file that you want a URL for.
+ * @param array $options Options for URL generation.
+ * @return string The generated URL.
+ * @throws Exception when the build file does not exist.
  */
-	protected function _getAssetUrl($type, $file) {
-		$baseUrl = $this->_Config->get($type . '.baseUrl');
-		$path = $this->_Config->get($type . '.cachePath');
+	public function url($file = null, $full = false) {
+		$config = $this->config();
+		if (!$config->exists($file)) {
+			throw new Exception('Cannot get URL for build file that does not exist.');
+		}
+
+		$options = $full;
+		if (!is_array($full)) {
+			$options = array('full' => $full);
+		}
+		$options += array('full' => false);
+		$type = $config->getExt($file);
+
+		$baseUrl = $config->get($type . '.baseUrl');
+		$path = $config->get($type . '.cachePath');
 		$devMode = Configure::read('debug') > 0;
 
-		$route = null;
+		// CDN routes.
 		if ($baseUrl && !$devMode) {
-			$route = $baseUrl . $this->_getBuildName($file);
+			return $baseUrl . $this->_getBuildName($file);
 		}
-		if (empty($route) && !$devMode) {
+
+		if (!$devMode) {
 			$path = str_replace(WWW_ROOT, '/', $path);
 			$path = rtrim($path, '/') . '/';
 			$route = $path . $this->_getBuildName($file);
 		}
-		if ($devMode || $this->_Config->general('alwaysEnableController')) {
+		if ($devMode || $config->general('alwaysEnableController')) {
 			$baseUrl = str_replace(WWW_ROOT, '/', $path);
 			$route = $this->_getRoute($file, $baseUrl);
 		}
@@ -354,6 +394,12 @@ class AssetCompressHelper extends AppHelper {
 		if (DS === '\\') {
 			$route = str_replace(DS, '/', $route);
 		}
+
+		if ($options['full']) {
+			$base = method_exists('Router', 'fullBaseUrl') ? Router::fullBaseUrl() : FULL_BASE_URL;
+			return $base . $route;
+		}
+
 		return $route;
 	}
 
@@ -367,12 +413,13 @@ class AssetCompressHelper extends AppHelper {
  * @return string The resolved build name.
  */
 	protected function _getBuildName($build) {
-		$ext = $this->_Config->getExt($build);
+		$config = $this->config();
+		$ext = $config->getExt($build);
 		$hash = $this->_getHashName($build, $ext);
 		if ($hash) {
 			$build = $hash;
 		}
-		$this->_Config->theme($this->theme);
+		$config->theme($this->theme);
 		return $this->_AssetCache->buildFileName($build);
 	}
 
@@ -386,16 +433,17 @@ class AssetCompressHelper extends AppHelper {
  * @return string Generated URL.
  */
 	protected function _getRoute($file, $base) {
-		$ext = $this->_Config->getExt($file);
+		$config = $this->config();
+		$ext = $config->getExt($file);
 		$query = array();
 
-		if ($this->_Config->isThemed($file)) {
+		if ($config->isThemed($file)) {
 			$query['theme'] = $this->theme;
 		}
 
 		if (isset($this->_runtime[$ext][$file])) {
 			$hash = $this->_getHashName($file, $ext);
-			$components = $this->_Config->files($file);
+			$components = $config->files($file);
 			if ($hash) {
 				$file = $hash;
 			}
@@ -417,7 +465,7 @@ class AssetCompressHelper extends AppHelper {
  */
 	protected function _getHashName($build, $ext) {
 		if (strpos($build, ':hash') === 0) {
-			$buildFiles = $this->_Config->files($build);
+			$buildFiles = $this->config()->files($build);
 			return md5(implode('_', $buildFiles)) . '.' . $ext;
 		}
 		return false;
@@ -434,8 +482,9 @@ class AssetCompressHelper extends AppHelper {
 	public function addScript($files, $target = ':hash-default.js') {
 		$target = $this->_addExt($target, '.js');
 		$this->_runtime['js'][$target] = true;
-		$defined = $this->_Config->files($target);
-		$this->_Config->files($target, array_merge($defined, (array)$files));
+		$config = $this->config();
+		$defined = $config->files($target);
+		$config->files($target, array_merge($defined, (array)$files));
 	}
 
 /**
@@ -449,8 +498,9 @@ class AssetCompressHelper extends AppHelper {
 	public function addCss($files, $target = ':hash-default.css') {
 		$target = $this->_addExt($target, '.css');
 		$this->_runtime['css'][$target] = true;
-		$defined = $this->_Config->files($target);
-		$this->_Config->files($target, array_merge($defined, (array)$files));
+		$config = $this->config();
+		$defined = $config->files($target);
+		$config->files($target, array_merge($defined, (array)$files));
 	}
 
 /**
@@ -460,7 +510,7 @@ class AssetCompressHelper extends AppHelper {
  * @return boolean True if the build file exists.
  */
 	public function exists($file) {
-		return $this->_Config->exists($file);
+		return $this->config()->exists($file);
 	}
 
 }

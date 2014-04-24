@@ -1,12 +1,12 @@
 <?php
 App::uses('AssetFilter', 'AssetCompress.Lib');
 App::uses('AssetScanner', 'AssetCompress.Lib');
+App::uses('Hash', 'Utility');
 
 /**
  * Implements directive replacement similar to sprockets <http://getsprockets.org>
  * Does not implement the //= provides syntax.
  *
- * @package asset_compress
  */
 class Sprockets extends AssetFilter {
 
@@ -41,7 +41,7 @@ class Sprockets extends AssetFilter {
  */
 	public function settings($settings) {
 		parent::settings($settings);
-		$this->_Scanner = new AssetScanner($settings['paths']);
+		$this->_Scanner = new AssetScanner($settings['paths'], Hash::get($settings, 'theme'));
 	}
 
 /**
@@ -79,7 +79,7 @@ class Sprockets extends AssetFilter {
 			}
 		}
 
-		if ($matches[2] == '"') {
+		if ($matches[2] === '"') {
 			// Same directory include
 			$file = $this->_findFile($matches[3], dirname($file) . DS);
 		} else {
@@ -103,19 +103,19 @@ class Sprockets extends AssetFilter {
 /**
  * Locates sibling files, or uses AssetScanner to locate <> style dependencies.
  *
- * @param string $file The basename of the file needing to be found.
+ * @param string $filename The basename of the file needing to be found.
  * @param string $path The path for same directory includes.
  * @return string Path to file.
  * @throws Exception when files can't be located.
  */
-	protected function _findFile($file, $path = null) {
-		if ($path && file_exists($path . $file)) {
-			return $path . $file;
+	protected function _findFile($filename, $path = null) {
+		if ($path && file_exists($path . $filename)) {
+			return $path . $filename;
 		}
-		$file = $this->_Scanner->find($file);
+		$file = $this->_Scanner->find($filename);
 		if ($file) {
 			return $file;
 		}
-		throw new Exception('Sprockets - Could not locate ' . $file);
+		throw new Exception('Sprockets - Could not locate file "' . $filename . '"');
 	}
 }
