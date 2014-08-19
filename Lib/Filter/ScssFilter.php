@@ -27,10 +27,11 @@ class ScssFilter extends AssetFilter {
 		if (substr($filename, strlen($this->_settings['ext']) * -1) !== $this->_settings['ext']) {
 			return $input;
 		}
-
+		
+		$filename = preg_replace('/ /', '\\ ', $filename);
 		$flags = '';
 		$cwd = null;
-
+		
 		if ($this->_settings['compass']) {
 			$flags = ' --compass';
 			$cwd = APP . 'Assets';
